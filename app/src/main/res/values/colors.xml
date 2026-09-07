@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="purple">#FF660099</color>
+    <color name="pink">#FFFF08FC</color>
+    <color name="red">#FFFF1744</color>
+    <color name="dark_gray">#FF1A1A1A</color>
+    <color name="bubble_me">#FF660099</color>
+    <color name="bubble_other">#FF2A2A2A</color>
+    <color name="status_gray">#FFAAAAAA</color>
+    <color name="transparent">#00000000</color>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RetroChat</string>
+    <string name="username_hint">Kullanıcı adın (3-20)</string>
+    <string name="save">Kaydet</string>
+    <string name="search">Kullanıcı Ara</string>
+    <string name="new_group">Grup</string>
+    <string name="send">Gönder</string>
+    <string name="write_message">Mesaj yaz…</string>
+    <string name="record_voice">Ses Kaydet</string>
+    <string name="attach">Dosya / Medya</string>
+    <string name="refresh">Yenile</string>
+    <string name="back">Geri</string>
+</resources>
