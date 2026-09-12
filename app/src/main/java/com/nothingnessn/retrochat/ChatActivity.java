@@ -695,13 +695,24 @@ public class ChatActivity extends Activity {
             recorder = new MediaRecorder();
             recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
             if (voiceLegacyMode) {
+                // Eski cihazlarda (SDK<24) duraklatma, ayri segmentler kaydedip
+                // ham AMR frame'lerini birlestirerek yapiliyor (mergeAmrSegments).
+                // Bu yontem sadece AMR/3GP ham veri yapisinda guvenli calisir,
+                // AAC/MP4 konteynerinde dosyayi bozar. O yuzden burada dokunmuyoruz.
                 voiceFile = new File(getCacheDir(), "voice_" + System.currentTimeMillis() + "_0.amr");
                 recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+                recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
             } else {
-                voiceFile = new File(getCacheDir(), "voice_" + System.currentTimeMillis() + ".3gp");
-                recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+                // Modern cihazlarda pause()/resume() native oldugu icin tek dosya
+                // yeterli. AAC/M4A, AMR_NB'ye gore cok daha kaliteli (genis bant,
+                // daha yuksek ornekleme + bit hizi) ve Android 4.0 ICS'ten beri
+                // (API 10+ AAC encoder, API 14+ hedef minSdk ile) destekleniyor.
+                voiceFile = new File(getCacheDir(), "voice_" + System.currentTimeMillis() + ".m4a");
+                recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+                recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+                recorder.setAudioEncodingBitRate(96000);
+                recorder.setAudioSamplingRate(44100);
             }
-            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
             recorder.setOutputFile(voiceFile.getAbsolutePath());
             recorder.prepare();
             recorder.start();
@@ -845,7 +856,7 @@ public class ChatActivity extends Activity {
         File f = voiceFile;
         voiceFile = null;
 
-        uploadFile(f, "ses_" + System.currentTimeMillis() + ".3gp");
+        uploadFile(f, "ses_" + System.currentTimeMillis() + ".m4a");
     }
 
     private File mergeAmrSegments(List<File> segments) {
@@ -1592,6 +1603,7 @@ public class ChatActivity extends Activity {
         if (l.endsWith(".bmp")) return "image/bmp";
         if (l.endsWith(".3gp")) return "audio/3gpp";
         if (l.endsWith(".amr")) return "audio/amr";
+        if (l.endsWith(".m4a")) return "audio/mp4";
         return "application/octet-stream";
     }
 
@@ -1840,10 +1852,6 @@ public class ChatActivity extends Activity {
         long now = System.currentTimeMillis();
         for (int i = recentLocalEchoes.size() - 1; i >= 0; i--) {
             Message echo = recentLocalEchoes.get(i);
-            if (now - echo.ts > 8000) {
-                recentLocalEchoes.remove(i);
-                continue;
-            }
             boolean found = false;
             for (int j = 0; j < parsed.size(); j++) {
                 Message pm = parsed.get(j);
@@ -1856,8 +1864,18 @@ public class ChatActivity extends Activity {
                 }
             }
             if (found) {
+                // Sunucu artik bu mesaji dondurdu, echo cache'inden kaldirilabilir.
                 recentLocalEchoes.remove(i);
+            } else if (now - echo.ts > 120000) {
+                // 2 dakikadir sunucu cevabinda yok. Cache'i temizle (sonsuza kadar
+                // biriktirmesin) ama mesaji ekrandan SILME - kullanicinin gordugu
+                // "gonderdim ama ekrandan kayboldu" bug'i tam olarak buradaki eski
+                // "sessizce at" davranisindan kaynaklaniyordu.
+                recentLocalEchoes.remove(i);
+                parsed.add(echo);
             } else {
+                // Henuz sunucu cevabinda yok ama cok da eski degil: gostermeye
+                // devam et, bir sonraki fetch'te tekrar kontrol edilecek.
                 parsed.add(echo);
             }
         }
